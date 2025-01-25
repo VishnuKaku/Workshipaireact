@@ -5,58 +5,78 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  position: relative;
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+monospace;
 }
+
+.login-button-container {
+position: absolute;
+top: 10px;
+right: 10px;
+z-index: 1;
+}
+
+.login-button-container button {
+padding: 10px 15px;
+background-color: #007bff;
+color: white;
+border: none;
+border-radius: 5px;
+cursor: pointer;
+transition: background-color 0.2s ease-in-out;
+}
+
+.login-button-container button:hover {
+background-color: #0056b3;
+}
+
 
 /* General styles for the table container */
-.handsontable-container {
-  width: 95%; /* Adjust the width as needed */
-  margin: 20px auto; /* Center the table horizontally */
-  overflow-x: auto; /* Allow horizontal scrolling if necessary */
+table {
+width: 95%;
+margin: 20px auto;
+overflow-x: auto;
+border-collapse: collapse;
+margin-bottom: 15px;
 }
 
-.handsontable-container table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 15px;
-}
 
 /* Style the header row */
-.handsontable-container th {
-  background-color: #f2f2f2; /* Light gray background */
-  font-weight: bold;
-  text-align: left; /* Align text to left */
-  padding: 8px;
-  border: 1px solid #ddd;
+th {
+ background-color: #f2f2f2;
+font-weight: bold;
+text-align: left;
+padding: 8px;
+border: 1px solid #ddd;
 }
 
 
 /* Style the data rows */
-.handsontable-container td {
-  padding: 8px;
-  border: 1px solid #ddd;
+td {
+ padding: 8px;
+border: 1px solid #ddd;
 }
-/* Optional: Style even and odd rows for better readability */
-.handsontable-container tr:nth-child(even) {
-  background-color: #f9f9f9;
+
+tr:nth-child(even) {
+background-color: #f9f9f9;
 }
 
 /* Button alignment */
-.handsontable-container button {
-  margin-top: 10px;
-  padding: 10px 15px;
-  background-color: #007bff; /* Blue button background */
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
+button {
+margin-top: 10px;
+padding: 10px 15px;
+background-color: #007bff;
+color: white;
+border: none;
+border-radius: 5px;
+cursor: pointer;
 }
 
-/* Style the form container */
 .form-container {
 width: 300px;
 margin: 50px auto;
@@ -85,7 +105,7 @@ box-sizing: border-box;
 
 .form-container button {
 padding: 10px 15px;
-background-color: #007bff; /* Blue button background */
+background-color: #007bff;
 color: white;
 border: none;
 border-radius: 5px;
@@ -95,7 +115,7 @@ margin: 10px auto;
 }
 
 .form-container button:hover {
-  background-color: #0056b3; /* Darker blue on hover */
+background-color: #0056b3;
 }
 
 

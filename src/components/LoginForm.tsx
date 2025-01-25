@@ -16,7 +16,7 @@ const LoginForm: React.FC = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const response = await axios.post('https://4durbmip8r.eu-central-1.awsapprunner.com/api/auth/login', { username, password });
+            const response = await axios.post('http://localhost:5000/api/auth/login', { username, password });
             console.log(response.data.message);
             localStorage.setItem('token', response.data.token);
             toast({
@@ -73,7 +73,11 @@ const LoginForm: React.FC = () => {
                             <LogIn className="mr-2 h-4 w-4" />
                             Sign In
                         </Button>
-                        <Link to="/signup">Create an account</Link>
+                         <div className="text-center mt-4">
+                           <Link to="/signup" className="text-blue-500 hover:text-blue-700">
+                           Create an account
+                            </Link>
+                       </div>
                     </form>
                 </CardContent>
             </Card>
