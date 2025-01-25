@@ -1,4 +1,3 @@
-// App.tsx
 import React, { useState, useEffect } from 'react';
 import './App.css';
 import UploadPassportForm from './components/UploadPassportForm';
@@ -6,15 +5,14 @@ import SignupForm from './components/SignupForm';
 import LoginForm from './components/LoginForm';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import UserHistoryTable from "./components/UserHistoryTable";
-import { AuthProvider, useAuth, AuthContextType } from './hooks/useAuth'; // Import types
+import { AuthProvider, useAuth, AuthContextType } from './hooks/useAuth';
 import { ToastContainer } from 'react-toastify';
 
 const App: React.FC = () => {
-  const { isAuthenticated, logout } : AuthContextType = useAuth();
+  const { isAuthenticated, logout, authInitialized } : AuthContextType = useAuth();
   const [showBackground, setShowBackground] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
-
 
   const handleLogout = () => {
     logout();
@@ -30,11 +28,10 @@ const App: React.FC = () => {
   }, [location.pathname, isAuthenticated]);
 
   useEffect(() => {
-      if (isAuthenticated && location.pathname !== '/history' && location.pathname !== '/home') {
-          navigate('/home');
-      }
-  }, [isAuthenticated, navigate, location.pathname]);
-
+    if (authInitialized && isAuthenticated && location.pathname !== '/history' && location.pathname !== '/home') {
+      navigate('/home');
+    }
+  }, [isAuthenticated, navigate, location.pathname, authInitialized]);
 
   const handleLoginClick = () => {
     setShowBackground(false);
@@ -42,6 +39,10 @@ const App: React.FC = () => {
       navigate("/login");
     }, 300);
   };
+
+  if (!authInitialized) {
+    return <div>Loading...</div>; // Add a loading state while auth is being initialized
+  }
 
   return (
     <div className="App">
@@ -61,14 +62,15 @@ const App: React.FC = () => {
         <Route path="/login" element={<LoginForm />} />
         <Route path="/signup" element={<SignupForm />} />
         <Route
-            path="/home"
-            element={isAuthenticated ? (
+          path="/home"
+          element={
+            isAuthenticated ? (
               <>
                 <button onClick={handleLogout}>Logout</button>
                 <UploadPassportForm />
               </>
             ) : null
-            }
+          }
         />
         <Route path="/history" element={<UserHistoryTable />} />
       </Routes>
@@ -77,10 +79,10 @@ const App: React.FC = () => {
 };
 
 const AppWrapper: React.FC = () => (
-    <AuthProvider>
-        <ToastContainer position="top-center" />
-        <App />
-    </AuthProvider>
+  <AuthProvider>
+    <ToastContainer position="top-center" />
+    <App />
+  </AuthProvider>
 );
 
 export default AppWrapper;
