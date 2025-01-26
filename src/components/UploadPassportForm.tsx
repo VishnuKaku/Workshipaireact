@@ -1,108 +1,235 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import 'handsontable/dist/handsontable.full.css';
 import { HotTable, HotTableClass } from '@handsontable/react';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { registerAllModules } from 'handsontable/registry';
+import {
+  ColumnSorting,
+  Filters,
+  ManualRowMove,
+  ManualColumnMove,
+  DropdownMenu,
+  ContextMenu,
+  BasePlugin,
+} from 'handsontable/plugins';
+import { HotTableProps } from '@handsontable/react';
+
+registerAllModules();
+
+interface CustomHotTableProps extends HotTableProps {
+    plugins?: (typeof BasePlugin)[];
+}
 
 const UploadPassportForm: React.FC = () => {
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
-    const [tableData, setTableData] = useState<any[]>([]);
-    const hotRef = useRef<HotTableClass | null>(null);
-    const { token } = useAuth();
-    const navigate = useNavigate();
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [tableData, setTableData] = useState<any[]>([]);
+  const hotRef = useRef<HotTableClass | null>(null);
+  const { token } = useAuth();
+  const navigate = useNavigate();
+  const [isDataValid, setIsDataValid] = useState(true);
 
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (event.target.files && event.target.files.length > 0) {
-            setSelectedFile(event.target.files[0]);
+  // Remove Sl_no from column settings since we'll use rowHeaders
+  const columnSettings = [
+    { data: 'Country' },
+    { data: 'Airport_Name_with_location' },
+    { data: 'Arrival_Departure' },
+    { data: 'Date' },
+    { data: 'Description' },
+  ];
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files.length > 0) {
+      setSelectedFile(event.target.files[0]);
+    }
+  };
+
+  const handleUpload = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!selectedFile) {
+      toast.warn('Please select a file first.');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('passportPage', selectedFile);
+
+    try {
+      const response = await axios.post(
+        'http://localhost:5000/api/passport/upload',
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            Authorization: `Bearer ${token}`,
+          },
+          maxContentLength: Infinity,
+          maxBodyLength: Infinity,
         }
-    };
+      );
+      
+      // Transform the data to remove Sl_no from visible columns
+      const transformedData = response.data.map((item: any) => ({
+        Country: item.Country,
+        Airport_Name_with_location: item.Airport_Name_with_location,
+        Arrival_Departure: item.Arrival_Departure,
+        Date: item.Date,
+        Description: item.Description,
+        _Sl_no: item.Sl_no // Keep Sl_no as hidden field for reference
+      }));
+      
+      setTableData(transformedData);
+      toast.success('Upload successful!');
+    } catch (error: any) {
+      console.error('Upload failed:', error);
+      toast.error(
+        `Upload failed: ${error.response?.data?.message || error.message}`
+      );
+    }
+  };
 
-    const handleUpload = async (event: React.FormEvent) => {
-        event.preventDefault();
-        if (!selectedFile) {
-             toast.warn('Please select a file first.');
-            return;
-        }
+  const handleViewHistory = () => {
+    navigate('/history');
+  };
 
-        const formData = new FormData();
-        formData.append('passportPage', selectedFile);
+  const validateDate = (dateString: string | null): boolean => {
+    if (!dateString) return true;
+    const date = new Date(dateString.split('/').reverse().join('-'));
+    if (isNaN(date.getTime())) return false;
+    return date <= new Date();
+  };
 
-        try {
-            const response = await axios.post('http://localhost:5000/api/passport/upload', formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                     Authorization: `Bearer ${token}`,
-                },
-                maxContentLength: Infinity,
-                maxBodyLength: Infinity
-            });
-           setTableData(response.data);
-              toast.success('Upload successful!');
-        } catch (error: any) {
-            console.error('Upload failed:', error);
-            toast.error(`Upload failed: ${error.response?.data?.message || error.message}`);
-        }
-    };
-        const handleViewHistory = () => {
-        navigate("/history");
-        }
-
-    const handleSave = async () => {
-        if (hotRef.current && hotRef.current.__hotInstance) {
-            const modifiedData = hotRef.current.__hotInstance.getData();
-             const processedData = modifiedData.map((entry: any) => {
-                    const isManualEntry = entry[6] === undefined ? true : false;
-                  return [
-                  entry[0], //Sl no
-                    entry[1], //country
-                    entry[2], //airportName
-                    entry[3], // arrival/departure
-                    entry[4], // date
-                    entry[5], // description
-                    isManualEntry, // isManualEntry (type boolean)
-                  ];
-                })
-            try {
-                await axios.post('http://localhost:5000/api/passport/data', processedData, {
-                     headers: {
-                       Authorization: `Bearer ${token}`,
-                     },
-                });
-              toast.success('Data saved successfully!');
-            } catch (error: any) {
-                console.error('Error saving data:', error);
-                 toast.error(`Error saving data: ${error.message}`);
+  const beforeChange = (changes: any[], source: string) => {
+    if (source === 'edit') {
+      let allValid = true;
+      if (changes) {
+        changes.forEach(([row, prop, oldValue, newValue]: [number, string, any, any]) => {
+          if (prop === 'Date') {
+            if (!validateDate(newValue)) {
+              allValid = false;
+              setTimeout(() => {
+                if (hotRef.current && hotRef.current.__hotInstance) {
+                  const hotInstance = hotRef.current.__hotInstance;
+                  const cell = hotInstance.getCell(row, hotInstance.propToCol(prop));
+                  if (cell) {
+                    cell.style.backgroundColor = 'red';
+                  }
+                }
+              }, 0);
+            } else {
+              setTimeout(() => {
+                if (hotRef.current && hotRef.current.__hotInstance) {
+                  const hotInstance = hotRef.current.__hotInstance;
+                  const cell = hotInstance.getCell(row, hotInstance.propToCol(prop));
+                  if (cell) {
+                    cell.style.backgroundColor = '';
+                  }
+                }
+              }, 0);
             }
-        } else {
-            console.error("Handsontable instance not available");
-        }
-    };
+          }
+        });
+        setIsDataValid(allValid);
+      }
+    }
+  };
 
-    return (
+  useEffect(() => {
+    if (tableData && tableData.length > 0 && hotRef.current && hotRef.current.__hotInstance) {
+      let allValid = true;
+      tableData.forEach((row, rowIndex) => {
+        if (row && row.Date) {
+          if (!validateDate(row.Date)) {
+            allValid = false;
+            setTimeout(() => {
+              const hotInstance = hotRef.current?.__hotInstance;
+              if (hotInstance) {
+                const cell = hotInstance.getCell(rowIndex, hotInstance.propToCol('Date'));
+                if (cell) {
+                  cell.style.backgroundColor = 'red';
+                }
+              }
+            }, 0);
+          }
+        }
+      });
+      setIsDataValid(allValid);
+    }
+  }, [tableData]);
+
+  const handleSave = async () => {
+    if (!isDataValid) {
+      toast.error('Cannot save data with invalid or future dates.', {
+        autoClose: 3000,
+      });
+      return;
+    }
+    if (hotRef.current && hotRef.current.__hotInstance) {
+      const modifiedData = hotRef.current.__hotInstance.getData();
+      const processedData = modifiedData.map((entry: any, index: number) => {
+        const isManualEntry = true;
+        return [
+          (index + 1).toString(), // Sl_no based on row index
+          entry[0], // Country
+          entry[1], // Airport_Name_with_location
+          entry[2], // Arrival_Departure
+          entry[3], // Date
+          entry[4], // Description
+          isManualEntry,
+        ];
+      });
+      try {
+        await axios.post('http://localhost:5000/api/passport/data', processedData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        toast.success('Data saved successfully!');
+      } catch (error: any) {
+        console.error('Error saving data:', error);
+        toast.error(`Error saving data: ${error.message}`);
+      }
+    } else {
+      console.error('Handsontable instance not available');
+    }
+  };
+
+  const hotTableSettings: CustomHotTableProps = {
+    data: tableData,
+    colHeaders: columnSettings.map((col) => col.data),
+    columns: columnSettings,
+    rowHeaders: true,
+    licenseKey: "non-commercial-and-evaluation",
+    plugins: [ColumnSorting, Filters, ManualRowMove, ManualColumnMove, DropdownMenu, ContextMenu, BasePlugin],
+    beforeChange: beforeChange,
+  }
+
+  return (
+    <div>
+      <form onSubmit={handleUpload}>
+        <h2>Upload Passport Page</h2>
+        <input
+          type="file"
+          onChange={handleFileChange}
+          accept=".jpg, .jpeg, .png, .pdf"
+        />
+        <button type="submit">Upload</button>
+      </form>
+      {tableData.length > 0 && (
         <div>
-            <form onSubmit={handleUpload}>
-                <h2>Upload Passport Page</h2>
-                <input type="file" onChange={handleFileChange} accept=".jpg, .jpeg, .png, .pdf" />
-                <button type="submit">Upload</button>
-            </form>
-            {tableData.length > 0 && (
-                <div>
-                    <h2>Edit Data</h2>
-                    <HotTable
-                        ref={hotRef}
-                        data={tableData}
-                        colHeaders={true}
-                        rowHeaders={true}
-                        licenseKey="non-commercial-and-evaluation"
-                    />
-                    <button onClick={handleSave}>Save Changes</button>
-                </div>
-            )}
-            <button onClick={handleViewHistory}>View History</button>
+          <h2>Edit Data</h2>
+          <HotTable
+            {...hotTableSettings}
+            ref={hotRef}
+          />
+          <button onClick={handleSave}>Save Changes</button>
         </div>
-    );
+      )}
+      <button onClick={handleViewHistory}>View History</button>
+    </div>
+  );
 };
 
 export default UploadPassportForm;
