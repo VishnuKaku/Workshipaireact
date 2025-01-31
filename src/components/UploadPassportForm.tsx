@@ -16,11 +16,20 @@ import {
   BasePlugin,
 } from 'handsontable/plugins';
 import { HotTableProps } from '@handsontable/react';
+import Core from 'handsontable/core';
+import { CellProperties } from 'handsontable/settings';
+
+
 
 registerAllModules();
 
 interface CustomHotTableProps extends HotTableProps {
     plugins?: (typeof BasePlugin)[];
+}
+
+interface ColumnSettings {
+    data: string;
+     renderer?:  string | ((instance: Core, TD: HTMLTableCellElement, row: number, column: number, prop: string | number, value: any, cellProperties: CellProperties) => void) | undefined
 }
 
 const UploadPassportForm: React.FC = () => {
@@ -31,13 +40,26 @@ const UploadPassportForm: React.FC = () => {
   const navigate = useNavigate();
   const [isDataValid, setIsDataValid] = useState(true);
 
+
   // Remove Sl_no from column settings since we'll use rowHeaders
-  const columnSettings = [
-    { data: 'Country' },
-    { data: 'Airport_Name_with_location' },
-    { data: 'Arrival_Departure' },
-    { data: 'Date' },
-    { data: 'Description' },
+  const columnSettings: ColumnSettings[] = [
+     { data: 'Country' },
+      { data: 'Airport_Name_with_location' },
+       {
+         data: 'Arrival_Departure',
+         renderer: (instance: Core, td: HTMLTableCellElement, row: number, col: number, prop: string | number, value: any, cellProperties: CellProperties) => {
+           const normalizedValue = value ? String(value).toUpperCase() : '';
+              if(normalizedValue === 'ARRIVAL'){
+                 td.innerHTML = ' <span style="font-size: 20px;">←</span> Arrival';
+              } else if (normalizedValue === 'DEPARTURE'){
+                 td.innerHTML = 'Departure <span style="font-size: 20px;">→</span>';
+               } else {
+                   td.innerHTML = value || '';
+              }
+          }
+        },
+      { data: 'Date' },
+      { data: 'Description' },
   ];
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -167,34 +189,36 @@ const UploadPassportForm: React.FC = () => {
       return;
     }
     if (hotRef.current && hotRef.current.__hotInstance) {
-      const modifiedData = hotRef.current.__hotInstance.getData();
-      const processedData = modifiedData.map((entry: any, index: number) => {
-        const isManualEntry = true;
+      const tableData = hotRef.current.__hotInstance.getData();
+      const processedData = tableData.map((row: any, index: number) => {
         return [
-          (index + 1).toString(), // Sl_no based on row index
-          entry[0], // Country
-          entry[1], // Airport_Name_with_location
-          entry[2], // Arrival_Departure
-          entry[3], // Date
-          entry[4], // Description
-          isManualEntry,
+          (index + 1).toString(), // Sl_no
+          row[0], // Country
+          row[1], // Airport_Name_with_location
+          row[2], // Arrival_Departure
+          row[3], // Date
+          row[4], // Description
+          true, // isManualEntry
         ];
       });
+
       try {
-        await axios.post('http://localhost:5000/api/passport/data', processedData, {
+        const response = await axios.post('http://localhost:5000/api/passport/data', processedData, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
-        toast.success('Data saved successfully!');
+        if (response.status === 200) {
+          toast.success('Data saved successfully!');
+        }
       } catch (error: any) {
         console.error('Error saving data:', error);
-        toast.error(`Error saving data: ${error.message}`);
+        toast.error(`Error saving data: ${error.response?.data?.message || error.message}`);
       }
     } else {
       console.error('Handsontable instance not available');
     }
-  };
+};
 
   const hotTableSettings: CustomHotTableProps = {
     data: tableData,

@@ -48,7 +48,7 @@
     ]
   },
   "devDependencies": {
-    "@babel/plugin-proposal-private-property-in-object": "latest",
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
     "@types/handsontable": "^0.31.2",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
