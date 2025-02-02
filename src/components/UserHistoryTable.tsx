@@ -3,7 +3,6 @@ import axios from 'axios';
 import { useAuth } from '../hooks/useAuth';
 import { IParsedPassportData } from '../types/passport';
 import { utils, writeFile } from 'xlsx';
-
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
@@ -15,15 +14,15 @@ const UserHistoryTable: React.FC = () => {
     const navigate = useNavigate();
 
     function parseDate(dateStr: string): Date {
-      const dateMatch = dateStr.match(/(\d{1,2})\s*\/\s*(\d{1,2})\s*\/\s*(\d{4})/);
-      if(dateMatch){
-        const day = parseInt(dateMatch[1], 10);
-        const month = parseInt(dateMatch[2], 10) - 1;
-        const year = parseInt(dateMatch[3], 10);
-        return new Date(year, month, day);
-       } else {
-        return new Date(dateStr);
-      }
+        const dateMatch = dateStr.match(/(\d{1,2})\s*\/\s*(\d{1,2})\s*\/\s*(\d{4})/);
+        if (dateMatch) {
+            const day = parseInt(dateMatch[1], 10);
+            const month = parseInt(dateMatch[2], 10) - 1;
+            const year = parseInt(dateMatch[3], 10);
+            return new Date(year, month, day);
+        } else {
+            return new Date(dateStr);
+        }
     }
 
     const checkDuplicateDate = (data: IParsedPassportData[], newEntry: IParsedPassportData): boolean => {
@@ -47,7 +46,6 @@ const UserHistoryTable: React.FC = () => {
                     }
                 );
 
-                // Filter out duplicates while maintaining order
                 const uniqueData: IParsedPassportData[] = [];
                 response.data.data.forEach(entry => {
                     if (!checkDuplicateDate(uniqueData, entry)) {
@@ -68,7 +66,7 @@ const UserHistoryTable: React.FC = () => {
 
                 const updatedData = sortedData.map((entry, index) => ({
                     ...entry,
-                    Sl_no: (index + 1).toString()
+                    Sl_no: (index + 1).toString(),
                 }));
 
                 setPassportData(updatedData);
@@ -82,6 +80,7 @@ const UserHistoryTable: React.FC = () => {
                 setIsLoading(false);
             }
         };
+
         fetchHistory();
     }, [token]);
 
@@ -94,7 +93,7 @@ const UserHistoryTable: React.FC = () => {
 
         const updatedData = sortedData.map((entry, index) => ({
             ...entry,
-            Sl_no: (index + 1).toString()
+            Sl_no: (index + 1).toString(),
         }));
 
         setPassportData(updatedData);
@@ -117,7 +116,6 @@ const UserHistoryTable: React.FC = () => {
             'Arrival / Departure': entry.Arrival_Departure,
             Date: entry.Date,
             Description: entry.Description,
-            //'Is Manual Entry': entry.isManualEntry,
         }));
 
         const worksheet = utils.json_to_sheet(formattedData);
@@ -127,7 +125,11 @@ const UserHistoryTable: React.FC = () => {
     };
 
     const handleBack = () => {
-        navigate(-1);
+        navigate('/home');
+    };
+
+    const handleMapView = () => {
+        navigate('/map-view'); // Navigate to the Map View page
     };
 
     if (isLoading) {
@@ -137,23 +139,29 @@ const UserHistoryTable: React.FC = () => {
     return (
         <div className="p-4">
             <div className="flex gap-4 mb-4">
-                <button 
+                <button
                     className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
                     onClick={handleSort}
                 >
                     Sort by Date {sortOrder === 'asc' ? '↑' : '↓'}
                 </button>
-                <button 
+                <button
                     className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
                     onClick={handleBack}
                 >
                     Back to Upload
                 </button>
-                <button 
+                <button
                     className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
                     onClick={handleExportToExcel}
                 >
                     Export to Excel
+                </button>
+                <button
+                    className="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600"
+                    onClick={handleMapView}
+                >
+                    Map View
                 </button>
             </div>
             <div className="overflow-x-auto">
@@ -166,7 +174,6 @@ const UserHistoryTable: React.FC = () => {
                             <th className="px-6 py-3 border-b">Arrival / Departure</th>
                             <th className="px-6 py-3 border-b">Date</th>
                             <th className="px-6 py-3 border-b">Description</th>
-                            
                         </tr>
                     </thead>
                     <tbody>
@@ -178,7 +185,6 @@ const UserHistoryTable: React.FC = () => {
                                 <td className="px-6 py-4 border-b">{entry.Arrival_Departure}</td>
                                 <td className="px-6 py-4 border-b">{entry.Date}</td>
                                 <td className="px-6 py-4 border-b">{entry.Description}</td>
-                                
                             </tr>
                         ))}
                     </tbody>

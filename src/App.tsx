@@ -3,13 +3,14 @@ import './App.css';
 import UploadPassportForm from './components/UploadPassportForm';
 import SignupForm from './components/SignupForm';
 import LoginForm from './components/LoginForm';
-import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import UserHistoryTable from "./components/UserHistoryTable";
+import MapView from "./components/MapView";
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth, AuthContextType } from './hooks/useAuth';
 import { ToastContainer } from 'react-toastify';
 
 const App: React.FC = () => {
-  const { isAuthenticated, logout, authInitialized } : AuthContextType = useAuth();
+  const { isAuthenticated, logout, authInitialized }: AuthContextType = useAuth();
   const [showBackground, setShowBackground] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
@@ -27,9 +28,9 @@ const App: React.FC = () => {
     }
   }, [location.pathname, isAuthenticated]);
 
-  useEffect(() => {
-    if (authInitialized && isAuthenticated && location.pathname !== '/history' && location.pathname !== '/home') {
-      navigate('/home');
+   useEffect(() => {
+    if (authInitialized && isAuthenticated && location.pathname !== '/history' && location.pathname !== '/home' && location.pathname !== '/map-view') {
+        navigate('/home');
     }
   }, [isAuthenticated, navigate, location.pathname, authInitialized]);
 
@@ -46,6 +47,7 @@ const App: React.FC = () => {
 
   return (
     <div className="App">
+      {/* Background Container */}
       <div
         className="background-container"
         style={{
@@ -53,15 +55,22 @@ const App: React.FC = () => {
           visibility: showBackground ? 'visible' : 'hidden'
         }}
       />
+
+      {/* Login Button on Home Page */}
       {location.pathname === '/' && !isAuthenticated && (
         <div className="login-button-container">
           <button onClick={handleLoginClick}>Login</button>
         </div>
       )}
+
+      {/* Routes */}
       <Routes>
+        {/* Authentication Routes */}
         <Route path="/login" element={<LoginForm />} />
         <Route path="/signup" element={<SignupForm />} />
-        <Route
+
+        {/* Protected Routes */}
+       <Route
           path="/home"
           element={
             isAuthenticated ? (
@@ -72,12 +81,14 @@ const App: React.FC = () => {
             ) : null
           }
         />
-        <Route path="/history" element={<UserHistoryTable />} />
+        <Route path="/history" element={isAuthenticated ? <UserHistoryTable /> : null } />
+        <Route path="/map-view" element={isAuthenticated ? <MapView /> : null} />
       </Routes>
     </div>
   );
 };
 
+// App Wrapper with AuthProvider
 const AppWrapper: React.FC = () => (
   <AuthProvider>
     <ToastContainer position="top-center" />
